@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Paintings</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0E0E0E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="./icon.svg">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0C0C0C;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #666;
+  padding: 40px 20px;
+  gap: 24px;
+}
+
+h1 {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 7px;
+  text-transform: uppercase;
+  color: #333;
+}
+
+/* ── Frame ── */
+#frame {
+  position: relative;
+  padding: 20px;
+  background: linear-gradient(145deg, #5C3A1C 0%, #3A2008 40%, #4E3018 60%, #2E1808 100%);
+  box-shadow:
+    0 0 0 1px #1A0C00,
+    inset 0 0 0 1px #7A5030,
+    inset 0 0 0 2px #3A2010,
+    0 24px 80px rgba(0,0,0,0.95),
+    0 8px 24px rgba(0,0,0,0.7);
+  max-width: calc(100vw - 32px);
+}
+
+#frame::after {
+  content: '';
+  position: absolute;
+  inset: 20px;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+
+canvas {
+  display: block;
+  width: min(480px, calc(100vw - 80px));
+  height: min(480px, calc(100vw - 80px));
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ── Controls ── */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(480px, calc(100vw - 40px));
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+select {
+  flex: 1;
+  background: #111;
+  border: 1px solid #222;
+  border-bottom-color: #2a2a2a;
+  color: #777;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  transition: border-color 0.2s, color 0.2s;
+  min-width: 0;
+}
+
+select:hover { border-color: #444; color: #aaa; }
+select:focus { outline: none; border-color: #555; color: #bbb; }
+
+button {
+  background: #111;
+  border: 1px solid #222;
+  border-bottom-color: #2a2a2a;
+  color: #777;
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  white-space: nowrap;
+  flex: 1;
+}
+
+button:hover { background: #181818; border-color: #444; color: #bbb; }
+button:active { background: #0A0A0A; }
+select:focus, button:focus { outline: none; }
+
+#invertBtn.active {
+  background: #1A1A1A;
+  border-color: #555;
+  color: #ddd;
+}
+
+/* ── Label ── */
+#label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #2a2a2a;
+  text-align: center;
+  text-transform: uppercase;
+  font-family: 'Courier New', monospace;
+}
+
+#save-hint {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #222;
+  text-align: center;
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<h1>Pixel Paintings</h1>
+
+<div id="frame">
+  <canvas id="c" width="1024" height="1024"></canvas>
+</div>
+
+<div class="controls">
+  <div class="row">
+  <select id="styleSelect">
+    <option value="random">— Random Style —</option>
+    <optgroup label="Landscape">
+      <option value="landscape">Landscape</option>
+      <option value="strata">Strata</option>
+    </optgroup>
+    <optgroup label="Field">
+      <option value="colorfield">Color Field</option>
+      <option value="noise">Noise</option>
+      <option value="plasma">Plasma</option>
+      <option value="caustic">Caustic</option>
+      <option value="flowfield">Flow Field</option>
+    </optgroup>
+    <optgroup label="Structure">
+      <option value="geometric">Geometric</option>
+      <option value="mandala">Mandala</option>
+      <option value="textile">Textile</option>
+      <option value="contour">Contour</option>
+    </optgroup>
+    <optgroup label="Cell">
+      <option value="voronoi">Voronoi</option>
+      <option value="crystal">Crystal</option>
+      <option value="mosaic">Mosaic</option>
+    </optgroup>
+    <optgroup label="Complex">
+      <option value="optic">Op Art</option>
+      <option value="orbittrap">Orbit Trap</option>
+      <option value="moire">Moiré</option>
+      <option value="truchet">Truchet</option>
+      <option value="spirograph">Spirograph</option>
+      <option value="glitch">Glitch</option>
+      <option value="void">Void</option>
+    </optgroup>
+    <optgroup label="Organic">
+      <option value="nebula">Nebula</option>
+      <option value="erosion">Erosion</option>
+      <option value="automata">Automata</option>
+      <option value="gradientmesh">Gradient Mesh</option>
+    </optgroup>
+  </select>
+
+  <select id="paletteSelect">
+    <option value="random">— Any Palette —</option>
+    <optgroup label="Warm">
+      <option value="ember">Ember</option>
+      <option value="rust">Rust</option>
+      <option value="lava">Lava</option>
+      <option value="copper">Copper</option>
+      <option value="gold">Gold</option>
+      <option value="solar">Solar</option>
+      <option value="sakura">Sakura</option>
+    </optgroup>
+    <optgroup label="Cool">
+      <option value="ocean">Ocean</option>
+      <option value="glacier">Glacier</option>
+      <option value="arctic">Arctic</option>
+      <option value="abyssal">Abyssal</option>
+      <option value="storm">Storm</option>
+    </optgroup>
+    <optgroup label="Dark">
+      <option value="midnight">Midnight</option>
+      <option value="dusk">Dusk</option>
+      <option value="void_pal">Void</option>
+      <option value="obsidian">Obsidian</option>
+    </optgroup>
+    <optgroup label="Other">
+      <option value="forest">Forest</option>
+      <option value="verdant">Verdant</option>
+      <option value="jade">Jade</option>
+      <option value="toxic">Toxic</option>
+      <option value="infrared">Infrared</option>
+      <option value="neon">Neon</option>
+      <option value="ash">Ash</option>
+      <option value="chalk">Chalk</option>
+    </optgroup>
+    <optgroup label="Rich">
+      <option value="wine">Wine</option>
+      <option value="cobalt">Cobalt</option>
+      <option value="plum">Plum</option>
+      <option value="mauve">Mauve</option>
+      <option value="coral">Coral</option>
+      <option value="sand">Sand</option>
+      <option value="bronze">Bronze</option>
+      <option value="steel">Steel</option>
+    </optgroup>
+  </select>
+  </div>
+  <div class="row">
+  <button onclick="generate()">Generate</button>
+  <button id="invertBtn" onclick="toggleInvert()">Invert</button>
+  <button onclick="download()">Save PNG</button>
+  </div>
+</div>
+
+<div id="label">—</div>
+<div id="save-hint">press and hold image to save</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+const BLOCK = 16;
+const G     = 1024 / BLOCK; // 64
+
+let invertMode = false;
+let lastPal, lastSeed, lastStyle;
+
+// ─── Palettes ────────────────────────────────────────────────────────────────
+const PALETTES = {
+  // warm
+  ember:    ['#080200','#1A0500','#3D0A00','#7A1800','#B53000','#E05000','#F07820','#F5A850','#FAD090','#FFF0D0'],
+  rust:     ['#080200','#180800','#351500','#602500','#8A3800','#B05020','#CC7040','#DD9860','#EEC090','#F8E8D0'],
+  lava:     ['#000000','#1A0000','#4D0000','#880000','#CC2200','#FF5500','#FF8800','#FFCC00','#FFEE88','#FFFFFF'],
+  copper:   ['#060200','#120800','#2A1500','#4A2800','#7A4510','#A86030','#C88050','#DDA070','#EEC898','#F8EDD0'],
+  gold:     ['#050300','#100800','#261800','#4A3200','#7A5200','#A87020','#CC9840','#E0BC70','#F0D8A8','#FFF5E0'],
+  solar:    ['#000000','#0D0500','#2A1000','#552000','#883300','#BB5500','#EE8800','#FFCC00','#FFEE66','#FFFFF0'],
+  sakura:   ['#080008','#180018','#380038','#600050','#9A2060','#CC5080','#E880A8','#F0A8C8','#F8D0E0','#FFF0F8'],
+  // cool
+  ocean:    ['#000509','#000E25','#001B50','#002E80','#0047A8','#0A65CC','#2589E8','#5AAFF0','#9AD0F8','#D0EEFF'],
+  glacier:  ['#01050A','#020E18','#052030','#0A3850','#185878','#2878A8','#4898C8','#80C0E0','#B8DFF0','#E8F5FF'],
+  arctic:   ['#000508','#010D18','#032030','#083858','#105888','#2080B8','#50A8D8','#88CCE8','#C0E4F4','#F0FAFF'],
+  abyssal:  ['#000008','#000318','#010830','#020F50','#051878','#0A2898','#1548B8','#3070C8','#60A0D8','#A0D0F0'],
+  storm:    ['#050508','#0C0C12','#181820','#252530','#353545','#505060','#707080','#9090A0','#B8B8C8','#E0E0EA'],
+  // dark
+  midnight: ['#010108','#020215','#050535','#0D0D60','#1A1A8A','#3030B0','#5858CC','#8888E0','#AAAAEE','#D8D8FF'],
+  dusk:     ['#07000F','#120020','#280048','#480080','#7A2EA0','#A855C0','#D080E0','#E8A0C8','#F5C8A0','#FDE8D0'],
+  void_pal: ['#000000','#050008','#0D0018','#180030','#280050','#3A0070','#500098','#7020B8','#9850D0','#C898F0'],
+  obsidian: ['#000000','#050505','#0E080A','#1A1010','#2A1818','#3D2020','#552A2A','#703535','#8C4040','#AA5050'],
+  // other
+  forest:   ['#010601','#021002','#053A05','#0A5A0A','#157A15','#2A9A2A','#50B850','#88CC88','#C0E8B0','#E8F8E0'],
+  verdant:  ['#050300','#0A0800','#151500','#202800','#304200','#486000','#688020','#90A848','#B8CC80','#E0EAB8'],
+  toxic:    ['#000500','#010D00','#022000','#053800','#0A5800','#108800','#28CC00','#80EE20','#C0F870','#F0FFB0'],
+  infrared: ['#000000','#000020','#100040','#400060','#800040','#C00020','#E04000','#F08000','#F8C000','#FFFF80'],
+  neon:     ['#00000F','#050020','#100045','#20006A','#8800CC','#CC00FF','#FF44FF','#FF88CC','#FFCC88','#FFFF00'],
+  ash:      ['#050505','#0F0F0F','#1E1E1E','#303030','#484848','#636363','#808080','#A0A0A0','#C5C5C5','#EBEBEB'],
+  // expanded
+  wine:     ['#080005','#150010','#300025','#560040','#800060','#A82880','#CC50A0','#E080C0','#F0B0DC','#FDE8F5'],
+  jade:     ['#000803','#001508','#002A12','#004820','#006830','#109050','#30B870','#68D898','#A8ECC8','#E0FAF0'],
+  cobalt:   ['#000308','#000818','#001035','#001E60','#00308A','#1050B8','#3070D8','#60A0F0','#98C8FF','#D0E8FF'],
+  plum:     ['#050008','#0D0018','#200030','#3A0058','#580080','#7820A0','#9C48C0','#C078DC','#DFB0F0','#F5E0FF'],
+  sand:     ['#060400','#120900','#281600','#482A00','#6A4010','#8A5C28','#AA7848','#C89868','#E0BC90','#F5DEB8'],
+  coral:    ['#080100','#1A0500','#380C08','#601818','#8A2820','#B84030','#D86050','#EE8870','#F8B098','#FFD8CC'],
+  bronze:   ['#040200','#0C0600','#1E1000','#381E00','#583200','#784A10','#946828','#AC8848','#C8AA70','#E8D0A8'],
+  steel:    ['#030508','#080E18','#101A2E','#1A2A48','#283E60','#3A5880','#5878A0','#7898C0','#A0BCDA','#D0E0F0'],
+  mauve:    ['#060308','#100818','#220F30','#3C1A50','#5A2870','#7C4090','#9E60B0','#C088CC','#DDB8E4','#F5E4FF'],
+  chalk:    ['#000000','#0A0A08','#181816','#2A2A28','#404040','#606058','#888878','#B0B0A0','#D8D8C8','#F8F8F0'],
+};
+
+const PALETTE_KEYS = Object.keys(PALETTES);
+const ALL_STYLES = ['landscape','strata','colorfield','noise','plasma','caustic','flowfield',
+                    'geometric','mandala','textile','contour','voronoi','crystal','mosaic',
+                    'optic','orbittrap','moire','truchet','spirograph','glitch','void',
+                    'nebula','erosion','automata','gradientmesh'];
+
+// ─── Math helpers ────────────────────────────────────────────────────────────
+function hash(x, y, s) {
+  let n = Math.sin(x * 127.1 + y * 311.7 + s * 74.3) * 43758.5453;
+  return n - Math.floor(n);
+}
+function smoothNoise(x, y, s) {
+  let ix=Math.floor(x), iy=Math.floor(y);
+  let fx=x-ix, fy=y-iy;
+  fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy);
+  let a=hash(ix,iy,s), b=hash(ix+1,iy,s);
+  let c=hash(ix,iy+1,s), d=hash(ix+1,iy+1,s);
+  return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;
+}
+function fbm(x, y, s, oct=4) {
+  let v=0, amp=0.5, freq=1, total=0;
+  for(let i=0;i<oct;i++){v+=smoothNoise(x*freq,y*freq,s+i*137)*amp;total+=amp;amp*=0.5;freq*=2.1;}
+  return v/total;
+}
+function clamp(t){return Math.max(0,Math.min(1,t));}
+
+// ─── Color helpers ────────────────────────────────────────────────────────────
+function hexToRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function paletteColor(pal, t) {
+  t = clamp(t);
+  t = Math.min(0.9999, t);
+  let n=pal.length-1, i=Math.floor(t*n), f=t*n-i;
+  let [r1,g1,b1]=hexToRgb(pal[i]), [r2,g2,b2]=hexToRgb(pal[i+1]);
+  return `rgb(${Math.round(r1+(r2-r1)*f)},${Math.round(g1+(g2-g1)*f)},${Math.round(b1+(b2-b1)*f)})`;
+}
+function block(gx, gy, color){ctx.fillStyle=color;ctx.fillRect(gx*BLOCK,gy*BLOCK,BLOCK,BLOCK);}
+
+// ─── Style: Landscape ────────────────────────────────────────────────────────
+function drawLandscape(pal, seed) {
+  let s1=seed, s2=seed+500, s3=seed+1000, s4=seed+1500, s5=seed+2000;
+
+  // Horizon sits 38-46% down the canvas
+  let horizFrac = 0.38 + hash(seed,99,3)*0.08;
+  let horizY = Math.floor(horizFrac * G);
+
+  // Generate each terrain layer as a height array (height above horizon, in grid cells)
+  function profile(sx, roughness, maxH, octaves) {
+    let raw = Array.from({length:G}, (_,x) => fbm(x/G*roughness, 0, sx, octaves));
+    // smooth once to remove single-pixel spikes
+    return raw.map((v,i)=>{
+      let l=raw[Math.max(0,i-1)], r=raw[Math.min(G-1,i+1)];
+      return (l+v*2+r)/4 * maxH * G; // height in grid cells above horizon
+    });
+  }
+
+  let farMtn  = profile(s3,   2.2, 0.22, 3); // distant, smooth ridge
+  let midMtn  = profile(s4,   3.5, 0.18, 4); // mid, more jagged
+  let nearMtn = profile(s5,   5.0, 0.12, 5); // near, rough
+  let fgHill  = profile(s1+9, 6.0, 0.07, 4); // foreground strip
+
+  // foreground top row (from bottom)
+  let fgTopY = Array.from({length:G}, (_,x) => G - 1 - Math.floor(fgHill[x]));
+
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++) {
+    let nx=x/G;
+    let farTop  = horizY - Math.floor(farMtn[x]);
+    let midTop  = horizY - Math.floor(midMtn[x]);
+    let nearTop = horizY - Math.floor(nearMtn[x]);
+    let fgTop   = fgTopY[x];
+    let t;
+
+    if(y < farTop) {
+      // ── Sky ──────────────────────────────────────────────────────
+      // dark at top → lighter near horizon  (palette 0 → 0.36)
+      let skyT = y / horizY;
+      let cloud = fbm(nx*4, y/G*6, s2, 3) * 0.05;
+      t = skyT * 0.33 + cloud;
+
+    } else if(y < midTop) {
+      // ── Far mountains ─────────────────────────────────────────────
+      // solid band: palette ~0.44-0.54 (mid-dark, reads as distant mass)
+      let depth = (y - farTop) / Math.max(1, midTop - farTop);
+      let tex   = fbm(nx*12, y/G*12, s3+77, 2) * 0.03;
+      t = 0.44 + depth * 0.1 + tex;
+
+    } else if(y < nearTop) {
+      // ── Mid mountains ─────────────────────────────────────────────
+      // slightly darker / warmer: palette ~0.54-0.65
+      let depth = (y - midTop) / Math.max(1, nearTop - midTop);
+      let tex   = fbm(nx*10, y/G*10, s4+55, 2) * 0.04;
+      t = 0.54 + depth * 0.11 + tex;
+
+    } else if(y < horizY) {
+      // ── Near ridge / tree-line ────────────────────────────────────
+      // darkest silhouette layer: palette ~0.65-0.72
+      let depth = (y - nearTop) / Math.max(1, horizY - nearTop);
+      t = 0.65 + depth * 0.07;
+
+    } else if(y >= fgTop) {
+      // ── Foreground strip ──────────────────────────────────────────
+      // heaviest darks: palette 0.88-1.0
+      let depth = (y - fgTop) / Math.max(1, G - 1 - fgTop);
+      let tex   = fbm(nx*8, y/G*8, s1+888, 3) * 0.05;
+      t = 0.88 + depth * 0.1 + tex;
+
+    } else {
+      // ── Valley / ground ───────────────────────────────────────────
+      // horizon to foreground: palette 0.72-0.88
+      let depth = (y - horizY) / Math.max(1, fgTop - horizY);
+      let tex   = fbm(nx*5, y/G*5, s2+999, 3) * 0.08;
+      t = 0.72 + depth * 0.16 + tex;
+    }
+
+    block(x, y, paletteColor(pal, clamp(t)));
+  }
+}
+
+// ─── Style: Strata ───────────────────────────────────────────────────────────
+function drawStrata(pal, seed) {
+  let angle=hash(seed,0,7)*Math.PI, ca=Math.cos(angle), sa=Math.sin(angle);
+  let layers=8+Math.floor(hash(seed,1,7)*12);
+  let faults=1+Math.floor(hash(seed,2,7)*3);
+  let faultPts=[];
+  for(let f=0;f<faults;f++) faultPts.push({y:hash(seed,f*5+10,7), dx:hash(seed,f*5+11,7)*0.2-0.1});
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G-0.5, ny=y/G-0.5;
+    let proj=(nx*ca+ny*sa+1)/2;
+    let warp=fbm(nx*3,ny*3,seed+100,4)*0.1;
+    let lv=(proj+warp)*layers;
+    let band=Math.floor(lv)/layers, frac=(lv%1)/layers;
+    let shift=0;
+    for(let fp of faultPts) if(ny+0.5>fp.y) shift+=fp.dx;
+    let t=(band+frac+shift)%1;
+    if(t<0)t+=1;
+    block(x,y,paletteColor(pal,clamp(t)));
+  }
+}
+
+// ─── Style: Color Field ───────────────────────────────────────────────────────
+function drawColorField(pal, seed) {
+  let bandCount=2+Math.floor(hash(seed,0,9)*2);
+  let centers=[];
+  for(let i=0;i<bandCount;i++) centers.push(0.08+(i/(bandCount-0.5))*0.84);
+  let splits=[0];
+  for(let i=1;i<bandCount;i++) splits.push(i/bandCount+(hash(seed,i,55)-0.5)*0.08);
+  splits.push(1);
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G,ny=y/G,band=0;
+    for(let i=0;i<splits.length-1;i++){let w=fbm(nx*1.2,ny*9,seed+i*400,3)*0.035;if(ny>splits[i]+w)band=i;}
+    let n=fbm(nx*7,ny*7,seed+band*300,4)*0.1;
+    let bny=(ny-splits[band])/(splits[band+1]-splits[band]);
+    let edge=Math.min(bny,1-bny);
+    let dimple=(1-Math.pow(1-Math.min(1,edge*5),2))*0.04;
+    block(x,y,paletteColor(pal,clamp(centers[band]+n-dimple)));
+  }
+}
+
+// ─── Style: Noise ────────────────────────────────────────────────────────────
+function drawNoise(pal, seed) {
+  let variant=Math.floor(hash(seed,7,9)*4);
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G,ny=y/G,t;
+    if(variant===0){let wx=fbm(nx*2+0.5,ny*2+9.2,seed+111,3),wy=fbm(nx*2+3.7,ny*2+2.1,seed+222,3);t=fbm(nx+wx*0.9,ny+wy*0.9,seed+333,5);}
+    else if(variant===1){t=1-Math.abs(fbm(nx*3,ny*3,seed,5)*2-1);}
+    else if(variant===2){let n=fbm(nx*4,ny*4,seed,4)*0.35;t=(Math.sin((nx+n)*Math.PI*5)*0.5+Math.sin((ny+n)*Math.PI*4)*0.5+1)*0.5;}
+    else{t=fbm(nx*2,ny*2,seed,3)*0.6+fbm(nx*6,ny*6,seed+444,4)*0.4;}
+    block(x,y,paletteColor(pal,clamp(t)));
+  }
+}
+
+// ─── Style: Plasma ───────────────────────────────────────────────────────────
+function drawPlasma(pal, seed) {
+  let f1=2+hash(seed,1,7)*5, f2=2+hash(seed,2,7)*5;
+  let f3=2+hash(seed,3,7)*4, f4=2+hash(seed,4,7)*4;
+  let cx=0.25+hash(seed,5,7)*0.5, cy=0.25+hash(seed,6,7)*0.5;
+  let p1=hash(seed,7,7)*Math.PI*2, p2=hash(seed,8,7)*Math.PI*2;
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G, ny=y/G;
+    let v = Math.sin(nx*f1*Math.PI*2+p1)
+           +Math.sin(ny*f2*Math.PI*2+p2)
+           +Math.sin((nx+ny)*f3*Math.PI*2)
+           +Math.sin(Math.sqrt((nx-cx)**2+(ny-cy)**2)*f4*Math.PI*5);
+    block(x,y,paletteColor(pal,clamp((v/4+1)/2)));
+  }
+}
+
+// ─── Style: Caustic ──────────────────────────────────────────────────────────
+function drawCaustic(pal, seed) {
+  let wc=6+Math.floor(hash(seed,0,7)*10);
+  let waves=[];
+  for(let i=0;i<wc;i++) waves.push({x:hash(seed,i*4+1,7),y:hash(seed,i*4+2,7),freq:3+hash(seed,i*4+3,7)*9,phase:hash(seed,i*4+4,7)*Math.PI*2});
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G, ny=y/G, v=0;
+    for(let w of waves) v+=Math.sin(Math.sqrt((nx-w.x)**2+(ny-w.y)**2)*w.freq*Math.PI*4+w.phase);
+    v=Math.pow((v/wc+1)/2, 1.6);
+    block(x,y,paletteColor(pal,clamp(v)));
+  }
+}
+
+// ─── Style: Flow Field ───────────────────────────────────────────────────────
+function drawFlowField(pal, seed) {
+  // Build a direction field from noise, trace from each cell
+  let field=Array.from({length:G},(_,y)=>Array.from({length:G},(_,x)=>{
+    let nx=x/G, ny=y/G;
+    return fbm(nx*3,ny*3,seed,4);
+  }));
+  // For each cell, accumulate value along a short flow path
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G, ny=y/G;
+    let steps=6, stepSize=0.015;
+    let v=0;
+    let cx=nx, cy=ny;
+    for(let s=0;s<steps;s++){
+      let angle=fbm(cx*3,cy*3,seed,3)*Math.PI*4;
+      cx+=Math.cos(angle)*stepSize;
+      cy+=Math.sin(angle)*stepSize;
+      cx=((cx%1)+1)%1; cy=((cy%1)+1)%1;
+      v+=smoothNoise(cx*6,cy*6,seed+500);
+    }
+    v/=steps;
+    let n=fbm(nx*8,ny*8,seed+999,2)*0.1;
+    block(x,y,paletteColor(pal,clamp(v+n)));
+  }
+}
+
+// ─── Style: Geometric ────────────────────────────────────────────────────────
+function drawGeometric(pal, seed) {
+  let variant=Math.floor(hash(seed,1,7)*5);
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G-0.5, ny=y/G-0.5, t;
+    if(variant===0){let rings=7+Math.floor(hash(seed,2,9)*7);t=Math.floor(Math.max(Math.abs(nx),Math.abs(ny))*2*rings)/rings;}
+    else if(variant===1){let warp=fbm(nx*3+5,ny*3+5,seed,3)*0.12;let d=Math.sqrt((nx+warp*0.5)**2+(ny+warp*0.5)**2)*1.4;t=(d*(6+Math.floor(hash(seed,2,9)*8)))%1;}
+    else if(variant===2){t=((Math.abs(nx)+Math.abs(ny))*2*(8+Math.floor(hash(seed,2,9)*8)))%1;}
+    else if(variant===3){let s=6+Math.floor(hash(seed,2,9)*10),angle=(Math.atan2(ny,nx)+Math.PI)/(Math.PI*2),d=Math.sqrt(nx**2+ny**2)*1.4;t=Math.floor(angle*s)/s*0.65+d*0.35;}
+    else{let cw=4+Math.floor(hash(seed,3,7)*10),ch=4+Math.floor(hash(seed,4,7)*10);t=hash(Math.floor(x/cw)*3+Math.floor(y/ch),Math.floor(x/cw)-Math.floor(y/ch)*2,seed);}
+    block(x,y,paletteColor(pal,clamp(t)));
+  }
+}
+
+// ─── Style: Mandala ──────────────────────────────────────────────────────────
+function drawMandala(pal, seed) {
+  let folds=[4,6,8,12][Math.floor(hash(seed,0,7)*4)];
+  let innerStyle=Math.floor(hash(seed,1,7)*3);
+  let sector=Math.PI*2/folds;
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G-0.5, ny=y/G-0.5;
+    let angle=Math.atan2(ny,nx), d=Math.sqrt(nx**2+ny**2)*2;
+    let fa=((angle%sector)+sector)%sector;
+    if(fa>sector/2) fa=sector-fa;
+    let fx=Math.cos(fa)*d*0.5+0.5, fy=Math.sin(fa)*d*0.5+0.5;
+    let t;
+    if(innerStyle===0){t=fbm(fx*4,fy*4,seed,4)*0.8+d*0.1;}
+    else if(innerStyle===1){let rings=8+Math.floor(hash(seed,2,7)*8),stripes=folds*2;t=((d*rings)%1+(fa/sector*stripes)%1)*0.5;}
+    else{let warp=fbm(fx*3,fy*3,seed+999,3)*0.3;t=fbm(fx+warp,fy+warp,seed+500,5)*0.85+d*0.05;}
+    t*=(1-Math.max(0,d-0.85)*6);
+    block(x,y,paletteColor(pal,clamp(t)));
+  }
+}
+
+// ─── Style: Textile ──────────────────────────────────────────────────────────
+function drawTextile(pal, seed) {
+  let ws=2+Math.floor(hash(seed,0,7)*4), wf=2+Math.floor(hash(seed,1,7)*4);
+  let weave=Math.floor(hash(seed,2,7)*3);
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let gx=Math.floor(x/ws), gy=Math.floor(y/wf);
+    let onTop = weave===0?(gx+gy)%2===0 : weave===1?(gx*2+gy)%4<2 : (gx*3+gy*7)%8<4;
+    let wc=fbm(gx*0.3,gy*0.1,seed,2)*0.4, fc=fbm(gx*0.1,gy*0.3,seed+500,2)*0.4;
+    let base=onTop ? 0.08+wc : 0.52+fc;
+    let ex=(x%ws)/(ws-1), ey=(y%wf)/(wf-1);
+    let shadow=Math.min(ex,1-ex,ey,1-ey)*2;
+    block(x,y,paletteColor(pal,clamp(base*0.9+shadow*0.1)));
+  }
+}
+
+// ─── Style: Contour ──────────────────────────────────────────────────────────
+function drawContour(pal, seed) {
+  let levels=7+Math.floor(hash(seed,0,7)*11);
+  let lines=hash(seed,1,7)>0.35;
+  let field=Array.from({length:G},(_,y)=>Array.from({length:G},(_,x)=>{
+    let nx=x/G,ny=y/G;
+    let wx=fbm(nx*2+0.5,ny*2+9.2,seed+111,3)*0.7;
+    let wy=fbm(nx*2+3.7,ny*2+2.1,seed+222,3)*0.7;
+    return fbm(nx+wx*0.55,ny+wy*0.55,seed,5);
+  }));
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let v=field[y][x];
+    let lv=v*levels, band=Math.floor(lv)/levels, frac=lv%1;
+    let isLine=lines&&frac<0.09;
+    let t=isLine ? band-0.08 : band+frac/levels*0.7;
+    block(x,y,paletteColor(pal,clamp(t)));
+  }
+}
+
+// ─── Style: Voronoi ──────────────────────────────────────────────────────────
+function drawVoronoi(pal, seed) {
+  let n=10+Math.floor(hash(seed,0,7)*18);
+  let pts=Array.from({length:n},(_,i)=>[hash(seed,i*3+1,5),hash(seed,i*3+2,5)]);
+  let cellVal=pts.map((_,i)=>hash(i,i*7+3,seed));
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G, ny=y/G, d1=Infinity, d2=Infinity, mi=0;
+    for(let i=0;i<n;i++){
+      let d=Math.sqrt((nx-pts[i][0])**2+(ny-pts[i][1])**2);
+      if(d<d1){d2=d1;d1=d;mi=i;}else if(d<d2)d2=d;
+    }
+    let edge=Math.min(1,(d2-d1)*5);
+    let t=cellVal[mi]*0.65+edge*0.35;
+    block(x,y,paletteColor(pal,clamp(t)));
+  }
+}
+
+// ─── Style: Crystal ──────────────────────────────────────────────────────────
+function drawCrystal(pal, seed) {
+  let n=14+Math.floor(hash(seed,0,7)*22);
+  let pts=Array.from({length:n},(_,i)=>[hash(seed,i*3+1,5),hash(seed,i*3+2,5)]);
+  let cellVal=pts.map((_,i)=>hash(i*5+1,i*3+7,seed));
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G, ny=y/G, d1=Infinity, d2=Infinity, mi=0;
+    for(let i=0;i<n;i++){
+      let d=Math.sqrt((nx-pts[i][0])**2+(ny-pts[i][1])**2);
+      if(d<d1){d2=d1;d1=d;mi=i;}else if(d<d2)d2=d;
+    }
+    let ridge=Math.min(1,(d2-d1)*7); // bright facet edges
+    let t=cellVal[mi]*0.45+ridge*0.55;
+    block(x,y,paletteColor(pal,clamp(t)));
+  }
+}
+
+// ─── Style: Op Art ───────────────────────────────────────────────────────────
+function drawOpArt(pal, seed) {
+  let variant=Math.floor(hash(seed,3,9)*4);
+  let f1=3+hash(seed,4,7)*5, f2=3+hash(seed,5,7)*5;
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G-0.5, ny=y/G-0.5, t;
+    if(variant===0){let d1=Math.sqrt((nx-0.18)**2+(ny-0.08)**2),d2=Math.sqrt((nx+0.18)**2+(ny+0.08)**2);t=(Math.sin(d1*Math.PI*f1*5)+Math.sin(d2*Math.PI*f2*5)+2)/4;}
+    else if(variant===1){t=((Math.floor((nx+0.5)*G)^Math.floor((ny+0.5)*G))%Math.round(f1*2))/(f1*2);}
+    else if(variant===2){let a=hash(seed,9,3)*Math.PI,rx=nx*Math.cos(a)-ny*Math.sin(a),ry=nx*Math.sin(a)+ny*Math.cos(a);t=(Math.sin(rx*Math.PI*f1*3)*Math.cos(ry*Math.PI*f2*3)+1)*0.5;}
+    else{let a=(Math.atan2(ny,nx)+Math.PI)/(Math.PI*2),d=Math.sqrt(nx**2+ny**2)*2,ac=Math.floor(a*Math.round(f1*3))%2,dc=Math.floor(d*Math.round(f2*2))%2;t=(ac^dc)?d%1:1-d%1;}
+    block(x,y,paletteColor(pal,clamp(t)));
+  }
+}
+
+// ─── Style: Orbit Trap ───────────────────────────────────────────────────────
+function drawOrbitTrap(pal, seed) {
+  let angle=hash(seed,1,7)*Math.PI*2, r=0.6+hash(seed,2,7)*0.6;
+  let cr=r*Math.cos(angle), ci=r*Math.sin(angle);
+  let maxIter=24+Math.floor(hash(seed,3,7)*24);
+  let trapType=Math.floor(hash(seed,4,7)*3);
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let zr=(x/G-0.5)*3.6, zi=(y/G-0.5)*3.6;
+    let minTrap=Infinity;
+    for(let i=0;i<maxIter;i++){
+      let zr2=zr*zr-zi*zi+cr, zi2=2*zr*zi+ci;
+      zr=zr2; zi=zi2;
+      let mag2=zr*zr+zi*zi;
+      let trap = trapType===0 ? Math.sqrt(mag2)
+               : trapType===1 ? Math.abs(Math.sqrt(mag2)-1)
+               : Math.min(Math.abs(zr), Math.abs(zi));
+      minTrap=Math.min(minTrap,trap);
+      if(mag2>16) break;
+    }
+    block(x,y,paletteColor(pal,clamp(Math.min(1,minTrap*0.55))));
+  }
+}
+
+// ─── Style: Glitch ───────────────────────────────────────────────────────────
+function drawGlitch(pal, seed) {
+  let field=Array.from({length:G},(_,y)=>Array.from({length:G},(_,x)=>fbm(x/G*3,y/G*3,seed,4)));
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let rowShift=Math.floor((hash(y,seed,7)-0.5)*10);
+    let sx=((x+rowShift)%G+G)%G;
+    let sy2=Math.min(G-1,Math.max(0,y+Math.floor(hash(y,seed+111,7)*4-2)));
+    let v=field[y][sx]*0.6+field[sy2][sx]*0.4;
+    let blockGlitch=hash(Math.floor(x/3),Math.floor(y/5),seed+222)>0.88;
+    if(blockGlitch) v=1-v;
+    block(x,y,paletteColor(pal,clamp(v)));
+  }
+}
+
+// ─── Style: Void ─────────────────────────────────────────────────────────────
+function drawVoid(pal, seed) {
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++) block(x,y,paletteColor(pal,fbm(x/G*5,y/G*5,seed,5)*0.12));
+  let fc=1+Math.floor(hash(seed,1,9)*3);
+  for(let f=0;f<fc;f++){
+    let fcx=0.2+hash(seed,f*7+2,3)*0.6, fcy=0.2+hash(seed,f*7+3,3)*0.6;
+    let ftype=Math.floor(hash(seed,f*7+4,3)*3), fsize=0.1+hash(seed,f*7+5,3)*0.25;
+    for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+      let nx=x/G,ny=y/G,dx=nx-fcx,dy=ny-fcy,prox=0;
+      if(ftype===0){prox=Math.max(0,1-Math.sqrt(dx**2+dy**2)/fsize);}
+      else if(ftype===1){prox=Math.max(0,1-Math.max(Math.abs(dx),Math.abs(dy))/fsize);}
+      else{prox=Math.max(0,1-(Math.abs(dx)+Math.abs(dy))/fsize);}
+      if(prox>0) block(x,y,paletteColor(pal,clamp(0.5+prox*0.45+fbm(nx*8,ny*8,seed+f*200,3)*0.1)));
+    }
+  }
+}
+
+// ─── Style: Mosaic (stained glass) ───────────────────────────────────────────
+function drawMosaic(pal, seed) {
+  let n=18+Math.floor(hash(seed,0,7)*28);
+  let pts=Array.from({length:n},(_,i)=>[hash(seed,i*3+1,5),hash(seed,i*3+2,5)]);
+  let cellVal=pts.map((_,i)=>hash(i,i*7+3,seed));
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G,ny=y/G,d1=Infinity,d2=Infinity,mi=0;
+    for(let i=0;i<n;i++){
+      let d=Math.sqrt((nx-pts[i][0])**2+(ny-pts[i][1])**2);
+      if(d<d1){d2=d1;d1=d;mi=i;}else if(d<d2)d2=d;
+    }
+    let border=(d2-d1)<0.018;
+    block(x,y,paletteColor(pal,border ? 0.02 : cellVal[mi]));
+  }
+}
+
+// ─── Style: Moiré ────────────────────────────────────────────────────────────
+function drawMoire(pal, seed) {
+  let f1=4+hash(seed,1,7)*6;
+  let f2=f1+0.4+hash(seed,2,7)*1.8;
+  let a1=hash(seed,3,7)*Math.PI, a2=a1+0.08+hash(seed,4,7)*0.28;
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G-0.5, ny=y/G-0.5;
+    let p1=nx*Math.cos(a1)+ny*Math.sin(a1);
+    let p2=nx*Math.cos(a2)+ny*Math.sin(a2);
+    let v=(Math.sin(p1*Math.PI*f1*2)+1)/2 * (Math.sin(p2*Math.PI*f2*2)+1)/2;
+    block(x,y,paletteColor(pal,clamp(v)));
+  }
+}
+
+// ─── Style: Truchet ──────────────────────────────────────────────────────────
+function drawTruchet(pal, seed) {
+  let bands=5+Math.floor(hash(seed,0,7)*9);
+  let scale=hash(seed,1,7)*Math.PI*2;
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let tile=hash(x,y,seed)>0.5;
+    let n=fbm(x/G*3,y/G*3,seed+100,3)*0.12;
+    let raw=tile ? (x+y) : Math.abs(x-y);
+    let t=((raw%bands)/bands+n+scale/(Math.PI*2))%1;
+    block(x,y,paletteColor(pal,clamp(t)));
+  }
+}
+
+// ─── Style: Spirograph ───────────────────────────────────────────────────────
+function drawSpirograph(pal, seed) {
+  let R=0.28+hash(seed,1,7)*0.12;
+  let r=0.04+hash(seed,2,7)*0.18;
+  let d=hash(seed,3,7)*(R+r*0.8);
+  let revs=Math.round(R/Math.max(0.01,r))+1;
+  let samples=Math.max(120, revs*60);
+  let pts=Array.from({length:samples},(_,i)=>{
+    let t=i/samples*Math.PI*2*revs;
+    return [(R-r)*Math.cos(t)+d*Math.cos((R-r)/Math.max(0.001,r)*t)+0.5,
+            (R-r)*Math.sin(t)-d*Math.sin((R-r)/Math.max(0.001,r)*t)+0.5];
+  });
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G,ny=y/G,minD=Infinity;
+    for(let p of pts){let d2=Math.sqrt((nx-p[0])**2+(ny-p[1])**2);if(d2<minD)minD=d2;}
+    let glow=Math.exp(-minD*22);
+    let bg=fbm(nx*4,ny*4,seed+100,3)*0.06;
+    block(x,y,paletteColor(pal,clamp(glow*0.88+bg)));
+  }
+}
+
+// ─── Style: Nebula ───────────────────────────────────────────────────────────
+function drawNebula(pal, seed) {
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G,ny=y/G;
+    let wx1=fbm(nx*2+0.5,ny*2+9.2,seed+111,4),wy1=fbm(nx*2+3.7,ny*2+2.1,seed+222,4);
+    let wx2=fbm(nx*4+wx1,ny*4+wy1,seed+333,3),wy2=fbm(nx*4+wy1,ny*4+wx1,seed+444,3);
+    let v=fbm(nx*5+wx2*0.9,ny*5+wy2*0.9,seed+555,5);
+    v=Math.pow(v,2.0);
+    // stars: rare bright pixels
+    if(hash(x,y,seed+777)>0.965) v=Math.max(v,0.82+hash(x,y,seed+888)*0.18);
+    block(x,y,paletteColor(pal,clamp(v)));
+  }
+}
+
+// ─── Style: Erosion ──────────────────────────────────────────────────────────
+function drawErosion(pal, seed) {
+  let h=Array.from({length:G},(_,y)=>Array.from({length:G},(_,x)=>fbm(x/G*3,y/G*3,seed,5)));
+  let iters=4+Math.floor(hash(seed,100,7)*6);
+  let talus=0.04+hash(seed,101,7)*0.12;
+  for(let iter=0;iter<iters;iter++){
+    let next=h.map(r=>[...r]);
+    for(let y=1;y<G-1;y++) for(let x=1;x<G-1;x++){
+      let maxDiff=0,mx=x,my=y;
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+        if(!dx&&!dy) continue;
+        let diff=h[y][x]-h[y+dy][x+dx];
+        if(diff>maxDiff){maxDiff=diff;mx=x+dx;my=y+dy;}
+      }
+      if(maxDiff>talus){let tr=maxDiff*0.28;next[y][x]-=tr;next[my][mx]+=tr;}
+    }
+    h=next;
+  }
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++) block(x,y,paletteColor(pal,clamp(h[y][x])));
+}
+
+// ─── Style: Automata ─────────────────────────────────────────────────────────
+function drawAutomata(pal, seed) {
+  let grid=Array.from({length:G},(_,y)=>Array.from({length:G},(_,x)=>hash(x,y,seed)>0.5?1:0));
+  let gens=10+Math.floor(hash(seed,100,7)*18);
+  for(let g=0;g<gens;g++){
+    let next=Array.from({length:G},()=>new Array(G).fill(0));
+    for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+      let nb=0;
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+        if(!dx&&!dy) continue;
+        nb+=grid[(y+dy+G)%G][(x+dx+G)%G];
+      }
+      let alive=grid[y][x];
+      next[y][x]=(alive&&(nb===2||nb===3))||(!alive&&nb===3)?1:0;
+    }
+    grid=next;
+  }
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let v=grid[y][x];
+    let n=fbm(x/G*5,y/G*5,seed+200,3)*0.12;
+    block(x,y,paletteColor(pal,clamp(v*0.72+0.18+n)));
+  }
+}
+
+// ─── Style: Gradient Mesh ────────────────────────────────────────────────────
+function drawGradientMesh(pal, seed) {
+  let n=4+Math.floor(hash(seed,0,7)*9);
+  let poles=Array.from({length:n},(_,i)=>({
+    x:hash(seed,i*4+1,7), y:hash(seed,i*4+2,7),
+    val:hash(seed,i*4+3,7), str:1.5+hash(seed,i*4+4,7)*2.5
+  }));
+  for(let y=0;y<G;y++) for(let x=0;x<G;x++){
+    let nx=x/G,ny=y/G,tw=0,tv=0;
+    for(let p of poles){
+      let w=1/Math.pow((nx-p.x)**2+(ny-p.y)**2+0.001, p.str);
+      tw+=w; tv+=w*p.val;
+    }
+    let n=fbm(nx*4,ny*4,seed+100,3)*0.04;
+    block(x,y,paletteColor(pal,clamp(tv/tw+n)));
+  }
+}
+
+// ─── Generate & Download ──────────────────────────────────────────────────────
+const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+function generate() {
+  let sv=document.getElementById('styleSelect').value;
+  let pv=document.getElementById('paletteSelect').value;
+  lastSeed=Math.random()*99999;
+  lastStyle=sv==='random'?ALL_STYLES[Math.floor(Math.random()*ALL_STYLES.length)]:sv;
+  let pk=pv==='random'?PALETTE_KEYS[Math.floor(Math.random()*PALETTE_KEYS.length)]:pv;
+  lastPal=PALETTES[pk];
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,1024,1024);
+  runStyle(lastStyle, lastPal, lastSeed);
+  document.getElementById('label').textContent=`${lastStyle}  ·  ${pk}`;
+  document.getElementById('save-hint').style.display=isMobile?'block':'none';
+}
+
+function runStyle(style, pal, seed) {
+  if(style==='landscape')    drawLandscape(pal,seed);
+  else if(style==='strata')  drawStrata(pal,seed);
+  else if(style==='colorfield') drawColorField(pal,seed);
+  else if(style==='noise')   drawNoise(pal,seed);
+  else if(style==='plasma')  drawPlasma(pal,seed);
+  else if(style==='caustic') drawCaustic(pal,seed);
+  else if(style==='flowfield') drawFlowField(pal,seed);
+  else if(style==='geometric') drawGeometric(pal,seed);
+  else if(style==='mandala') drawMandala(pal,seed);
+  else if(style==='textile') drawTextile(pal,seed);
+  else if(style==='contour') drawContour(pal,seed);
+  else if(style==='voronoi') drawVoronoi(pal,seed);
+  else if(style==='crystal') drawCrystal(pal,seed);
+  else if(style==='mosaic')  drawMosaic(pal,seed);
+  else if(style==='optic')   drawOpArt(pal,seed);
+  else if(style==='orbittrap') drawOrbitTrap(pal,seed);
+  else if(style==='moire')   drawMoire(pal,seed);
+  else if(style==='truchet') drawTruchet(pal,seed);
+  else if(style==='spirograph') drawSpirograph(pal,seed);
+  else if(style==='glitch')  drawGlitch(pal,seed);
+  else if(style==='void')    drawVoid(pal,seed);
+  else if(style==='nebula')  drawNebula(pal,seed);
+  else if(style==='erosion') drawErosion(pal,seed);
+  else if(style==='automata') drawAutomata(pal,seed);
+  else if(style==='gradientmesh') drawGradientMesh(pal,seed);
+}
+
+function toggleInvert() {
+  invertMode=!invertMode;
+  document.getElementById('invertBtn').classList.toggle('active',invertMode);
+  canvas.style.filter = invertMode ? 'invert(1)' : '';
+}
+
+function download() {
+  let label=document.getElementById('label').textContent.replace(/[^a-z0-9]+/gi,'_').toLowerCase().replace(/^_|_$/g,'');
+  canvas.toBlob(blob=>{
+    let url=URL.createObjectURL(blob);
+    if(isMobile){window.open(url,'_blank');}
+    else{let a=document.createElement('a');a.href=url;a.download=`${label}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  },'image/png');
+}
+
+generate();
+
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
+</body>
+</html>
